@@ -1,4 +1,4 @@
 [flake8]
 max-line-length = 79
-extend-exclude = .venv, */migrations/*
+extend-exclude = .venv, */migrations/*, node_modules
 max-function-length = 14

@@ -115,3 +115,41 @@ jobs:
       - name: Coverage report
         working-directory: backend
         run: coverage report -m
+
+  frontend:
+    name: Angular
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          # Full path on purpose: defaults.run.working-directory applies to
+          # run steps only, never to an action's with: parameters. A bare
+          # package-lock.json here would silently disable the cache.
+          cache-dependency-path: frontend/package-lock.json
+
+      # npm ci installs the lock file verbatim and fails if it disagrees with
+      # package.json. npm install would quietly resolve newer versions, so the
+      # runner could build against different packages than the developer.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test
