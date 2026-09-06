@@ -1,9 +1,9 @@
 """Signal that sends the activation email after a user is created."""
 
-from django.dispatch import receiver
+import django_rq
 from django.db import transaction
 from django.db.models.signals import post_save
-import django_rq
+from django.dispatch import receiver
 
 from .models import User
 from .utils import send_activation_email

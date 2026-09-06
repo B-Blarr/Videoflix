@@ -1,17 +1,16 @@
 """Helpers for activation and reset links and the HTML emails."""
 
 import os
-
-from django.conf import settings
 from email.message import MIMEPart
-from django.contrib.auth.tokens import default_token_generator
+
+import django_rq
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-import django_rq
-
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
 User = get_user_model()
 

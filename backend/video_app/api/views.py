@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 
 from video_app.models import Video
 from video_app.utils import hls_file_path, hls_segment_path
+
 from .serializers import VideoSerializer
 
 

@@ -1,11 +1,9 @@
 """Serializers for registration, login and password reset."""
 
-from django.contrib.auth import password_validation, get_user_model
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-
+from django.contrib.auth import get_user_model, password_validation
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
-
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 User = get_user_model()
 

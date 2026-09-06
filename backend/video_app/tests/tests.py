@@ -1,14 +1,14 @@
 """Tests for HLS probing, conversion and delivery in video_app."""
 
 import json
-import subprocess
 import os
 import shutil
+import subprocess
 import tempfile
-
 from unittest.mock import patch
-from django.test import TestCase, SimpleTestCase, override_settings
+
 from django.contrib.auth import get_user_model
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -16,13 +16,12 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from video_app.models import Video
 from video_app.utils import (
-    probe_video,
     VideoProbeError,
-    convert_video,
     build_hls_command,
+    convert_video,
     create_thumbnail,
+    probe_video,
 )
-
 
 User = get_user_model()
 TEST_MEDIA = tempfile.mkdtemp()

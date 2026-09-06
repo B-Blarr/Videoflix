@@ -29,6 +29,12 @@ jobs:
       - name: Run flake8
         run: flake8 .
 
+      # isort finds .isort.cfg in the repository root, same as flake8 does.
+      # --check-only reports instead of rewriting, --diff shows what it would change.
+      - name: Check import order
+        if: '!cancelled()'
+        run: isort --check-only --diff .
+
   test:
     name: Django tests
     runs-on: ubuntu-latest

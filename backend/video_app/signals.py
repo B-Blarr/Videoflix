@@ -3,8 +3,8 @@
 import django_rq
 from django.conf import settings
 from django.db import transaction
+from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
-from django.db.models.signals import post_save, post_delete, pre_save
 
 from .models import Video
 from .utils import convert_video, drop_replaced_source, remove_video_files

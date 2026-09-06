@@ -1,9 +1,16 @@
 """Routes for registration, login, logout and password reset."""
 
 from django.urls import path
-from .views import (RegistrationView, ActivateView,
-                    CookieTokenObtainPairView, CookieTokenRefreshView,
-                    LogoutView, PasswordConfirmView, PasswordResetView)
+
+from .views import (
+    ActivateView,
+    CookieTokenObtainPairView,
+    CookieTokenRefreshView,
+    LogoutView,
+    PasswordConfirmView,
+    PasswordResetView,
+    RegistrationView,
+)
 
 urlpatterns = [
     path('register/', RegistrationView.as_view(), name='register'),

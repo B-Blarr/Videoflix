@@ -2,25 +2,36 @@
 
 from django.contrib.auth.tokens import default_token_generator
 from drf_spectacular.utils import extend_schema
-from rest_framework.permissions import AllowAny
 from rest_framework import status
-from rest_framework.views import APIView
 from rest_framework.generics import GenericAPIView
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.views import (TokenObtainPairView,
-                                            TokenRefreshView)
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
 
-from .serializers import (RegistrationSerializer,
-                          CookieTokenObtainPairSerializer,
-                          PasswordResetSerializer, PasswordConfirmSerializer,
-                          DetailResponseSerializer, LoginResponseSerializer,
-                          RefreshResponseSerializer,
-                          RegistrationResponseSerializer)
-from .utils import (set_auth_cookie, clear_auth_cookies, unauthorized,
-                    bad_request)
-from auth_app.utils import get_user_from_uidb64, enqueue_password_reset_email
+from auth_app.utils import enqueue_password_reset_email, get_user_from_uidb64
+
+from .serializers import (
+    CookieTokenObtainPairSerializer,
+    DetailResponseSerializer,
+    LoginResponseSerializer,
+    PasswordConfirmSerializer,
+    PasswordResetSerializer,
+    RefreshResponseSerializer,
+    RegistrationResponseSerializer,
+    RegistrationSerializer,
+)
+from .utils import (
+    bad_request,
+    clear_auth_cookies,
+    set_auth_cookie,
+    unauthorized,
+)
 
 LOGOUT_DETAIL = (
     "Logout successful! All tokens will be deleted. "

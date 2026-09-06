@@ -2,3 +2,4 @@
 
 flake8==7.3.0
 flake8-functions==0.1.0
+isort==9.0.1
