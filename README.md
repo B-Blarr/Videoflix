@@ -169,7 +169,7 @@ Videoflix/
    | Variable                   | Description                                             |
    | -------------------------- | ------------------------------------------------------- |
    | `SECRET_KEY`               | Django secret key, required                             |
-   | `DJANGO_SUPERUSER_*`       | Admin account created on the first start                |
+   | `DJANGO_SUPERUSER_*`       | Admin account, created on first start if all three are set |
    | `DEBUG`                    | Present in the template, but not read by the project    |
    | `DB_*`                     | PostgreSQL name, user, password, host and port          |
    | `REDIS_LOCATION`           | Connection URL used by the cache                        |
@@ -186,17 +186,24 @@ Videoflix/
    | `CSRF_TRUSTED_ORIGINS`     | Comma-separated frontend origins                        |
    | `CORS_ALLOWED_ORIGINS`     | Origins allowed to send credentials                     |
    | `COOKIE_SECURE`            | Set to `True` when serving over HTTPS                   |
+   | `COMPOSE_PROJECT_NAME`     | Prefix for container and volume names                   |
 
-   The template already ships a working key. To generate your own without
-   installing anything:
+   The template ships `your_secret_key` as a placeholder, so you have to
+   generate one. Without installing anything:
 
    ```bash
    docker run --rm python:3.12-alpine python -c "import secrets; print(secrets.token_urlsafe(50))"
    ```
 
-   Every one of them ships with a working value in the template, so the only
-   ones you have to touch are the database credentials and, if you want mail
-   to go out, the `EMAIL_*` block.
+   Most of them ship with a working value. The ones you **have** to fill in
+   are `SECRET_KEY`, the three `DJANGO_SUPERUSER_*` values, the database
+   credentials, and the `EMAIL_*` block if you want mail to go out.
+
+   > ⚠️ **All three `DJANGO_SUPERUSER_*` values are required together.** If
+   > any one of them is missing, the container starts normally and logs
+   > `Skipping superuser`, but no admin account is created and
+   > `/admin/` stays unreachable. This is deliberate: the entrypoint has no
+   > fallback password, so nothing is ever created that you did not choose.
 
    > ⚠️ **Fill in real mail credentials.** The template ships `EMAIL_HOST` as
    > `smtp.example.com`, a placeholder. Mail goes out through a background

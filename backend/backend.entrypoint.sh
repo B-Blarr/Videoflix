@@ -2,40 +2,38 @@
 
 set -e
 
-echo "Warte auf PostgreSQL auf $DB_HOST:$DB_PORT..."
+echo "Waiting for PostgreSQL at $DB_HOST:$DB_PORT..."
 
-# -q für "quiet" (keine Ausgabe außer Fehlern)
-# Die Schleife läuft, solange pg_isready *nicht* erfolgreich ist (Exit-Code != 0)
+# -q silences pg_isready; the loop runs until it reports success
 while ! pg_isready -h "$DB_HOST" -p "$DB_PORT" -q; do
-  echo "PostgreSQL ist nicht erreichbar - schlafe 1 Sekunde"
+  echo "PostgreSQL is not reachable yet, retrying in 1 second"
   sleep 1
 done
 
-echo "PostgreSQL ist bereit - fahre fort..."
+echo "PostgreSQL is ready, continuing..."
 
-# Deine originalen Befehle (ohne wait_for_db)
+# Collect static files, then bring the database schema up to date
 python manage.py collectstatic --noinput
-python manage.py makemigrations
 python manage.py migrate
 
 # Create a superuser using environment variables
-# (Dein Superuser-Erstellungs-Code bleibt gleich)
 python manage.py shell <<EOF
 import os
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
-username = os.environ.get('DJANGO_SUPERUSER_USERNAME', 'admin')
-email = os.environ.get('DJANGO_SUPERUSER_EMAIL', 'admin@example.com')
-password = os.environ.get('DJANGO_SUPERUSER_PASSWORD', 'adminpassword')
+username = os.environ.get('DJANGO_SUPERUSER_USERNAME')
+email = os.environ.get('DJANGO_SUPERUSER_EMAIL')
+password = os.environ.get('DJANGO_SUPERUSER_PASSWORD')
 
-if not User.objects.filter(username=username).exists():
-    print(f"Creating superuser '{username}'...")
-    # Korrekter Aufruf: username hier übergeben
+if not (username and email and password):
+    print("Skipping superuser: DJANGO_SUPERUSER_* is not fully set.")
+elif User.objects.filter(username=username).exists():
+    print(f"Superuser '{username}' already exists.")
+else:
+    # username is required by create_superuser, even though login uses the email
     User.objects.create_superuser(username=username, email=email, password=password)
     print(f"Superuser '{username}' created.")
-else:
-    print(f"Superuser '{username}' already exists.")
 EOF
 
 python manage.py rqworker high default low &
