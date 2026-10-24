@@ -14,8 +14,8 @@ cookies**, so a browser client never has to store a token itself. The whole
 stack runs in **Docker**: PostgreSQL, Redis and Django behind Gunicorn with
 two RQ workers.
 
-An **Angular frontend** in `frontend/` is in progress and not part of this
-repository yet.
+An **Angular frontend** is being built in `frontend/`. So far it only holds
+the project setup, so everything below describes the backend.
 
 ![Videoflix API documentation](assets/preview.png)
 
@@ -23,6 +23,7 @@ repository yet.
 
 ## Contents
 
+- [Architecture](#architecture)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
@@ -37,6 +38,23 @@ repository yet.
 - [API Documentation](#api-documentation)
 - [API Endpoints](#api-endpoints)
 - [Conventions & Notes](#conventions--notes)
+
+---
+
+## Architecture
+
+Saving a video in the Django admin puts a conversion job on Redis once the
+database commit is done. One of two RQ workers builds a thumbnail, converts
+the upload with FFmpeg to HLS in 480p, 720p and 1080p and writes the status
+back to PostgreSQL. Only finished videos are listed. Playlists and segments
+are streamed through the API to logged-in users. Account emails go
+to a separate high-priority queue, so the workers pick them up before any
+waiting conversion.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/architecture-dark.svg">
+  <img alt="Architecture: an admin user uploads a video through the Django admin and the frontend calls the API. Inside Docker Compose Django uses PostgreSQL and puts jobs on Redis. Two RQ workers convert videos with FFmpeg into HLS files on the media volume, which Django streams to the player. The workers also send account emails through an SMTP server." src="docs/architecture-light.svg">
+</picture>
 
 ---
 
@@ -80,7 +98,7 @@ repository yet.
 | Framework        | Django 6.1                                    |
 | API              | Django REST Framework 3.18.0                  |
 | Database         | PostgreSQL 18 (`postgres:18`)                 |
-| Cache            | Redis via django-redis 7.0.0                  |
+| Cache            | django-redis 7.0.0 (set up, not used yet)     |
 | Background tasks | django-rq 4.1.1 (Redis backed)                |
 | Auth             | djangorestframework-simplejwt 5.5.1 (cookies) |
 | Video processing | FFmpeg (bundled in the image)                 |
@@ -306,8 +324,8 @@ docker compose exec web ls -R media/
 
 ## Frontend
 
-An **Angular frontend** will live in `frontend/`. It is not part of this
-repository yet, so everything documented here is the API.
+An **Angular frontend** is being built in `frontend/`. So far it only holds
+the project setup, so everything documented here is the API.
 
 To drive that API from a browser in the meantime, use the reference frontend
 from the Developer Akademie, which this backend was built against:

@@ -100,8 +100,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r backend/requirements.txt
 
-      # The entrypoint runs makemigrations on every container start, so a
-      # forgotten migration is created silently and never shows up locally.
+      # A forgotten migration does not show up locally until something breaks.
       # --check exits non-zero instead, --dry-run writes nothing.
       - name: Check for missing migrations
         working-directory: backend
