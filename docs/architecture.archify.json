@@ -68,8 +68,8 @@
     {
       "id": "frontend",
       "type": "external",
-      "label": "Videoflix frontend",
-      "sublabel": "by Developer Akademie",
+      "label": "Frontend",
+      "sublabel": "browser client",
       "pos": [
         40,
         230
