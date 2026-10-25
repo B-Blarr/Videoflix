@@ -26,6 +26,11 @@ def env_list(name, default=""):
             if item.strip()]
 
 
+def env_bool(name, default="False"):
+    """Read a true/false switch from the environment."""
+    return os.getenv(name, default).strip().lower() in ("1", "true", "yes")
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -34,13 +39,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
+# There is deliberately no fallback: a key that is written into a public
+# repository is no secret, so a missing key stops the start instead.
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY is not set in the environment variables.")
 
-INSECURE_FALLBACK_KEY = (
-    'django-insecure-@#x5h3zj!g+8g1v@2^b6^9$8&f1r7g$@t3v!p4#=g0r5qzj4m3'
-)
-SECRET_KEY = os.getenv('SECRET_KEY', default=INSECURE_FALLBACK_KEY)
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Off unless the .env switches it on, so a forgotten setting fails safe.
+DEBUG = env_bool("DEBUG")
 
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
 CSRF_TRUSTED_ORIGINS = env_list(
