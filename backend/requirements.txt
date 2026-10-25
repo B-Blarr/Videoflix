@@ -4,11 +4,11 @@ click==8.4.2
 colorama==0.4.6
 coverage==7.15.4
 croniter==6.2.4
-Django==6.1
+Django==6.1.2
 django-cors-headers==4.9.0
 django-redis==7.0.0
 django-rq==4.1.1
-djangorestframework==3.18.0
+djangorestframework==3.18.3
 djangorestframework_simplejwt==5.5.1
 drf-spectacular==0.30.0
 gunicorn==26.0.0
@@ -17,7 +17,7 @@ jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
 packaging==26.3
 psycopg2-binary==2.9.12
-PyJWT==2.13.0
+PyJWT==2.15.1
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.2
 PyYAML==6.0.3
@@ -26,7 +26,7 @@ referencing==0.37.0
 rpds-py==2026.6.3
 rq==2.10.0
 six==1.17.0
-sqlparse==0.5.5
+sqlparse==0.6.0
 tzdata==2026.3
 uritemplate==4.2.0
 whitenoise==6.12.0

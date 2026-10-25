@@ -95,8 +95,8 @@ waiting conversion.
 | Component        | Version                                       |
 | ---------------- | --------------------------------------------- |
 | Language         | Python 3.12 (`python:3.12-alpine`)            |
-| Framework        | Django 6.1                                    |
-| API              | Django REST Framework 3.18.0                  |
+| Framework        | Django 6.1.2                                  |
+| API              | Django REST Framework 3.18.3                  |
 | Database         | PostgreSQL 18 (`postgres:18`)                 |
 | Cache            | django-redis 7.0.0 (set up, not used yet)     |
 | Background tasks | django-rq 4.1.1 (Redis backed)                |
