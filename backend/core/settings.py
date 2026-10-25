@@ -240,6 +240,16 @@ REST_FRAMEWORK = {
         'auth_app.api.authentication.CookieJWTAuthentication'
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    # Counted per client IP in the Redis cache above, so every Gunicorn
+    # worker sees the same numbers.
+    'DEFAULT_THROTTLE_RATES': {
+        'auth': '10/minute',
+        'password_reset': '5/hour',
+    },
+    # How many proxies sit in front of Gunicorn. Without this DRF would take
+    # the client IP from X-Forwarded-For, a header every client can fake to
+    # dodge the limits. 0 means the direct connection; set 1 behind nginx.
+    'NUM_PROXIES': int(os.getenv("NUM_PROXIES", "0")),
 }
 
 SIMPLE_JWT = {

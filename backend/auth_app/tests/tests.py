@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core import mail
+from django.core.cache import cache
 from django.test import override_settings
 from django.urls import reverse
 from django.utils.encoding import force_bytes
@@ -16,14 +17,33 @@ SYNC_QUEUES = {
     name: {**config, 'ASYNC': False}
     for name, config in settings.RQ_QUEUES.items()
 }
+LOCAL_CACHE = {
+    'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'},
+}
+
+
+@override_settings(CACHES=LOCAL_CACHE)
+class AuthAPITestCase(APITestCase):
+    """Start every test with empty throttle counters.
+
+    The auth endpoints are throttled and the counters live in the cache.
+    A local cache keeps the real Redis untouched, clearing it keeps one
+    test's requests from counting against the next.
+    """
+
+    def setUp(self):
+        """Reset the throttle counters."""
+        super().setUp()
+        cache.clear()
 
 
 @override_settings(RQ_QUEUES=SYNC_QUEUES)
-class RegistrationTests(APITestCase):
+class RegistrationTests(AuthAPITestCase):
     """Tests for the register endpoint and its activation email."""
 
     def setUp(self):
         """Create an existing user and a payload for a fresh signup."""
+        super().setUp()
         self.user = User.objects.create_user(
             username='test@test.de', password='SuperSecret123!',
             email='test@test.de')
@@ -82,11 +102,12 @@ class RegistrationTests(APITestCase):
         self.assertIn('email', response.data)
 
 
-class LoginTests(APITestCase):
+class LoginTests(AuthAPITestCase):
     """Tests for logging in with an email and receiving cookies."""
 
     def setUp(self):
         """Create an activated account to log in with."""
+        super().setUp()
         self.user = User.objects.create_user(
             username='test@test.de', password='SuperSecret123!',
             email='test@test.de')
@@ -114,11 +135,12 @@ class LoginTests(APITestCase):
         self.assertNotIn('access_token', response.cookies)
 
 
-class LogoutTests(APITestCase):
+class LogoutTests(AuthAPITestCase):
     """Tests for logging out and invalidating the refresh token."""
 
     def setUp(self):
         """Create an account and log it in so the cookies are set."""
+        super().setUp()
 
         self.user = User.objects.create_user(
             username='test@test.de', password='SuperSecret123!',
@@ -155,11 +177,12 @@ class LogoutTests(APITestCase):
         self.assertEqual(response.cookies['refresh_token'].value, '')
 
 
-class TokenRefreshTests(APITestCase):
+class TokenRefreshTests(AuthAPITestCase):
     """Tests for refreshing the access token from the cookie."""
 
     def setUp(self):
         """Create an account and log it in to get a refresh cookie."""
+        super().setUp()
         self.user = User.objects.create_user(
             username='test@test.de', password='SuperSecret123!',
             email='test@test.de')
@@ -194,11 +217,12 @@ class TokenRefreshTests(APITestCase):
             response.status_code, status.HTTP_401_UNAUTHORIZED, response.data)
 
 
-class ActivateTests(APITestCase):
+class ActivateTests(AuthAPITestCase):
     """Tests for activating an account from the emailed link."""
 
     def setUp(self):
         """Create an inactive account plus a valid uid and token."""
+        super().setUp()
         self.user = User.objects.create_user(
             username='test@test.de', password='SuperSecret123!',
             email='test@test.de', is_active=False)
@@ -232,11 +256,12 @@ class ActivateTests(APITestCase):
 
 
 @override_settings(RQ_QUEUES=SYNC_QUEUES)
-class PasswordResetTests(APITestCase):
+class PasswordResetTests(AuthAPITestCase):
     """Tests the reset endpoint: it sends mail, but never reveals to whom."""
 
     def setUp(self):
         """Create an account and remember the reset endpoint URL."""
+        super().setUp()
         self.user = User.objects.create_user(
             username='test@test.de', password='SuperSecret123!',
             email='test@test.de')
@@ -273,10 +298,11 @@ class PasswordResetTests(APITestCase):
                 self.assertEqual(len(mail.outbox), 0)
 
 
-class PasswordConfirmTests(APITestCase):
+class PasswordConfirmTests(AuthAPITestCase):
     """Tests for setting a new password from the emailed link."""
     def setUp(self):
         """Create an account, a valid reset link, and a new password."""
+        super().setUp()
         self.user = User.objects.create_user(
             username='test@test.de', password='SuperSecret123!',
             email='test@test.de')
@@ -296,3 +322,41 @@ class PasswordConfirmTests(APITestCase):
             response.status_code, status.HTTP_200_OK, response.data)
         self.user.refresh_from_db()
         self.assertTrue(self.user.check_password('MynewSecret123!'))
+
+
+class ThrottleTests(AuthAPITestCase):
+    """Repeated attempts on the auth endpoints are slowed down."""
+
+    def test_eleventh_login_in_a_minute_is_rejected(self):
+        """Ten tries go through, the eleventh answers 429."""
+        payload = {'email': 'nobody@test.de', 'password': 'wrong'}
+        for _ in range(10):
+            response = self.client.post(reverse('login'), payload)
+            self.assertNotEqual(
+                response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        response = self.client.post(reverse('login'), payload)
+        self.assertEqual(
+            response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_faked_forwarded_header_does_not_reset_the_limit(self):
+        """A new X-Forwarded-For per request still counts as one client."""
+        payload = {'email': 'nobody@test.de', 'password': 'wrong'}
+        for number in range(10):
+            self.client.post(
+                reverse('login'), payload,
+                HTTP_X_FORWARDED_FOR=f'10.0.0.{number}')
+        response = self.client.post(
+            reverse('login'), payload, HTTP_X_FORWARDED_FOR='10.0.0.99')
+        self.assertEqual(
+            response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_sixth_password_reset_in_an_hour_is_rejected(self):
+        """Five reset requests go through, the sixth answers 429."""
+        payload = {'email': 'nobody@test.de'}
+        for _ in range(5):
+            response = self.client.post(reverse('password_reset'), payload)
+            self.assertNotEqual(
+                response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        response = self.client.post(reverse('password_reset'), payload)
+        self.assertEqual(
+            response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
