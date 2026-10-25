@@ -70,6 +70,7 @@ waiting conversion.
 - Conversion and email delivery run in the background with **Django RQ**,
   emails on a `high` and conversions on a `low` priority queue
 - **Cleanup on delete**: source file, thumbnail and all HLS files go with it
+- **Rate limits** on login, registration and password reset, counted in Redis
 - Auto-generated **OpenAPI 3 documentation** (Swagger UI & ReDoc) via drf-spectacular
 
 ---
@@ -98,7 +99,7 @@ waiting conversion.
 | Framework        | Django 6.1.2                                  |
 | API              | Django REST Framework 3.18.3                  |
 | Database         | PostgreSQL 18 (`postgres:18`)                 |
-| Cache            | django-redis 7.0.0 (set up, not used yet)     |
+| Cache            | django-redis 7.0.0 (rate limit counters)      |
 | Background tasks | django-rq 4.1.1 (Redis backed)                |
 | Auth             | djangorestframework-simplejwt 5.5.1 (cookies) |
 | Video processing | FFmpeg (bundled in the image)                 |
@@ -186,11 +187,11 @@ Videoflix/
 
    | Variable                   | Description                                             |
    | -------------------------- | ------------------------------------------------------- |
-   | `SECRET_KEY`               | Django secret key, required                             |
+   | `SECRET_KEY`               | Django secret key, the backend does not start without it |
    | `DJANGO_SUPERUSER_*`       | Admin account, created on first start if all three are set |
-   | `DEBUG`                    | Present in the template, but not read by the project    |
+   | `DEBUG`                    | Django debug mode, off unless set to `True`             |
    | `DB_*`                     | PostgreSQL name, user, password, host and port          |
-   | `REDIS_LOCATION`           | Connection URL used by the cache                        |
+   | `REDIS_LOCATION`           | Connection URL of the cache that holds the rate limits  |
    | `REDIS_HOST`, `REDIS_PORT` | Connection used by the RQ queues                        |
    | `REDIS_DB`                 | Redis database index used by the RQ queues              |
    | `EMAIL_BACKEND`            | Backend used to deliver mail                            |
@@ -204,6 +205,7 @@ Videoflix/
    | `CSRF_TRUSTED_ORIGINS`     | Comma-separated frontend origins                        |
    | `CORS_ALLOWED_ORIGINS`     | Origins allowed to send credentials                     |
    | `COOKIE_SECURE`            | Set to `True` when serving over HTTPS                   |
+   | `NUM_PROXIES`              | Reverse proxies in front of Gunicorn, `1` behind nginx  |
    | `COMPOSE_PROJECT_NAME`     | Prefix for container and volume names                   |
 
    The template ships `your_secret_key` as a placeholder, so you have to
@@ -212,6 +214,10 @@ Videoflix/
    ```bash
    docker run --rm python:3.12-alpine python -c "import secrets; print(secrets.token_urlsafe(50))"
    ```
+
+   Put the key in single quotes. Docker Compose reads a `$` in an unquoted or
+   double-quoted value as the start of a variable and would silently cut the
+   key short.
 
    Most of them ship with a working value. The ones you **have** to fill in
    are `SECRET_KEY`, the three `DJANGO_SUPERUSER_*` values, the database
@@ -545,9 +551,10 @@ without one; serving both spares a `301` redirect per segment.
 
 **Neither the uploaded source file nor the HLS segments are reachable outside
 these endpoints.** The media route in `backend/core/urls.py` serves `media/thumbnails/`
-alone, so nothing else can be fetched under `/media/`. Thumbnails stay
-public on purpose: the frontend sets `thumbnail_url` as an `img` source, and a
-preview image is not worth protecting.
+alone, so nothing else can be fetched under `/media/`, and it works with
+`DEBUG` switched off as well. Thumbnails stay public on purpose: the frontend
+sets `thumbnail_url` as an `img` source, and a preview image is not worth
+protecting.
 
 Registering expects three fields:
 
@@ -563,6 +570,12 @@ Registering expects three fields:
 
 ## Conventions & Notes
 
+- **Login, registration, activation and the password confirm endpoint share
+  one rate limit** of 10 requests per minute and client, a password reset
+  request allows 5 per hour. Beyond that the API answers
+  `429 Too Many Requests`. The client is the direct connection by default.
+  Behind a reverse proxy such as nginx, set `NUM_PROXIES=1` so the real client
+  address from `X-Forwarded-For` is used instead of the proxy's.
 - **Accounts start out inactive.** Registration creates the user, but logging
   in is refused until the link from the activation email has been used.
 - **The email links point at the frontend**, not at this API. The frontend
