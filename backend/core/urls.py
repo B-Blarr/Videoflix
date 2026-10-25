@@ -15,7 +15,6 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.conf import settings
-from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import (
@@ -23,6 +22,8 @@ from drf_spectacular.views import (
     SpectacularRedocView,
     SpectacularSwaggerView,
 )
+
+from video_app.api.views import thumbnail_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -34,7 +35,8 @@ urlpatterns = [
         url_name='schema'), name='swagger-ui'),
     path('api/schema/redoc/', SpectacularRedocView.as_view(
         url_name='schema'), name='redoc'),
-] + static(
-    f"{settings.MEDIA_URL}thumbnails/",
-    document_root=settings.MEDIA_ROOT / "thumbnails",
-)
+    # Built from MEDIA_URL, the same prefix the thumbnail URLs are made of.
+    path(
+        f"{settings.MEDIA_URL.lstrip('/')}thumbnails/<path:path>",
+        thumbnail_view, name='thumbnail'),
+]

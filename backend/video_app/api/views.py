@@ -1,7 +1,11 @@
-"""Views for the video list and the HLS playlist and segments."""
+"""Views for the video list, the HLS files and the thumbnails."""
 
+from pathlib import Path
+
+from django.conf import settings
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
+from django.views.static import serve
 from rest_framework import generics
 from rest_framework.views import APIView
 
@@ -43,3 +47,14 @@ class HLSSegmentView(APIView):
         if path is None:
             raise Http404
         return FileResponse(open(path, 'rb'), content_type='video/MP2T')
+
+
+def thumbnail_view(request, path):
+    """Serve a thumbnail, also when DEBUG is off.
+
+    Django's static() helper only adds its route while DEBUG is on, so the
+    thumbnails would vanish as soon as DEBUG is switched off. serve() joins
+    the path safely, a path that leaves the folder answers 400.
+    """
+    return serve(
+        request, path, document_root=Path(settings.MEDIA_ROOT) / 'thumbnails')

@@ -5,6 +5,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+from pathlib import Path
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -123,6 +124,34 @@ class HLSViewTests(APITestCase):
         response = self.client.get(reverse('video_list'))
         self.assertTrue(
             response.data[0]['thumbnail_url'].startswith('http://'))
+
+
+@override_settings(MEDIA_ROOT=Path(TEST_MEDIA), DEBUG=False)
+class ThumbnailViewTests(TestCase):
+    """Thumbnails stay reachable with DEBUG off, nothing else does."""
+
+    def setUp(self):
+        """Put one thumbnail where the view looks for it."""
+        folder = os.path.join(TEST_MEDIA, 'thumbnails')
+        os.makedirs(folder, exist_ok=True)
+        with open(os.path.join(folder, '1.jpg'), 'wb') as image:
+            image.write(b'\xff\xd8')
+
+    @classmethod
+    def tearDownClass(cls):
+        """Remove the temporary media tree again."""
+        shutil.rmtree(TEST_MEDIA, ignore_errors=True)
+        super().tearDownClass()
+
+    def test_thumbnail_is_served_without_debug(self):
+        """The thumbnail answers 200 and needs no login."""
+        response = self.client.get('/media/thumbnails/1.jpg')
+        self.assertEqual(response.status_code, 200)
+
+    def test_path_outside_thumbnails_is_refused(self):
+        """A path that climbs out of the folder answers 400."""
+        response = self.client.get('/media/thumbnails/../videos/x.mp4')
+        self.assertEqual(response.status_code, 400)
 
 
 @override_settings(MEDIA_ROOT=TEST_MEDIA)

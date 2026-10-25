@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -48,6 +49,8 @@ class RegistrationView(GenericAPIView):
     """Register an inactive account and return its activation token."""
 
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'auth'
     serializer_class = RegistrationSerializer
 
     def post(self, request):
@@ -69,6 +72,8 @@ class ActivateView(APIView):
     """Activate an account from the link in the activation mail."""
 
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'auth'
 
     def get(self, request, uidb64, token):
         """Activate the account, answering under "message" not "detail"."""
@@ -89,6 +94,8 @@ class CookieTokenObtainPairView(TokenObtainPairView):
     """Log in by email and hand the tokens over as cookies."""
 
     serializer_class = CookieTokenObtainPairSerializer
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'auth'
 
     def post(self, request, *args, **kwargs):
         """Set both token cookies and replace the body per contract."""
@@ -154,6 +161,8 @@ class PasswordResetView(GenericAPIView):
     """Send a reset link without revealing whether the account exists."""
 
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'password_reset'
     serializer_class = PasswordResetSerializer
 
     def post(self, request):
@@ -169,6 +178,8 @@ class PasswordConfirmView(GenericAPIView):
     """Set a new password for the user behind a reset link."""
 
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'auth'
     serializer_class = PasswordConfirmSerializer
 
     def post(self, request, uidb64, token):
